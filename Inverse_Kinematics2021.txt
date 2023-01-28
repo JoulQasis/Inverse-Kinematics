@@ -1,0 +1,81 @@
+
+L1= 0.27;  %the length of the first segment of the limb 
+L2= 0.36;  %the length of the second segment of the limb 
+L3= 0.27;  %the length of the third segment of the limb 
+
+alfa1(1)=pi/6; %  The starting joint angle in the first joint 
+alfa2(1)=pi/4; %  The starting joint angle in the second joint 
+alfa3(1)=pi/6; %  The starting joint angle in the third joint 
+
+
+%P4 calculation of the starting coordinate
+P4x(1)=L1*(cos(alfa1(1)))+L2*(cos(alfa1(1)+alfa2(1)))+L3*(cos(alfa1(1)+alfa2(1)+alfa3(1))); 
+P4y(1)=L1*(sin(alfa1(1)))+L2*(sin(alfa1(1)+alfa2(1)))+L3*(sin(alfa1(1)+alfa2(1)+alfa3(1))); 
+
+%P=[Px(1) ; Py(1)]; % these are the coordinates of the endpoint of the robotarm at the beginning of the movement 
+%T=[Tx ; Ty]; % these are the coordinates of the target point, what we want to reach with the endpoint of the robotarm 
+
+Tx = 0.2;
+Ty = -0.2;
+
+
+% the movement will be excuted in small steps
+for i=2:100 
+
+% small movements in the direction of the target in the ith step.
+P4x(i)=P4x(i-1)+(Tx-P4x(1))/100;
+P4y(i)=P4y(i-1)+(Ty-P4y(1))/100;
+
+end
+
+for k=1:99
+% Compute the jacovian matrix:
+J11(k) = L1*(-sin(alfa1(k)))+ L2*(-sin(alfa1(k)+alfa2(k)))+L3*(-sin(alfa1(k)+alfa2(k)+alfa3(k))); 
+J12(k) = L2*(-sin(alfa1(k)+alfa2(k)))+ L3*(-sin(alfa1(k)+alfa2(k)+alfa3(k))); 
+J13(k) = L3*(-sin(alfa1(k)+alfa2(k)+alfa3(k))); 
+ 
+J21(k)=L1*(cos(alfa1(k)))+ L2*(cos(alfa1(k)+alfa2(k)))+L3*(cos(alfa1(k)+alfa2(k)+alfa3(k))); 
+J22(k)=L2*(cos(alfa1(k)+alfa2(k)))+L3*(cos(alfa1(k)+alfa2(k)+alfa3(k))); 
+J23(k)=L3*(cos(alfa1(k)+alfa2(k)+alfa3(k))); 
+
+J=[J11(k) J12(k) J13(k); J21(k) J22(k) J23(k)];
+
+% Compute the pesudoinverse of J (pinv(J)) and multiply it with the planned next
+% small step (displacement) of the endpoint of the robotarm. This gives a
+% an array "deltaalfa", that contains the small angular changes which are
+% required to move the endpoint in this step.
+deltaalfa=pinv(J)*[P4x(k+1)-P4x(k) P4y(k+1)-P4y(k)]';
+
+% add the small angular changes to the actual joint angles.
+alfa1(k+1)=alfa1(k)+deltaalfa(1);
+alfa2(k+1)=alfa2(k)+deltaalfa(2);
+alfa3(k+1)=alfa3(k)+deltaalfa(3);
+
+% Compute the new postions of the joints of the robotarm.
+P2x(k)=L1*cos(alfa1(k)); 
+P2y(k)=L1*sin(alfa1(k)); 
+
+P3x(k)=L1*(cos(alfa1(k)))+L2*(cos(alfa1(k)+alfa2(k))); 
+P3y(k)=L1*(sin(alfa1(k)))+L2*(sin(alfa1(k)+alfa2(k))); 
+
+P4x(k)=L1*(cos(alfa1(k)))+L2*(cos(alfa1(k)+alfa2(k)))+L3*(cos(alfa1(k)+alfa2(k)+alfa3(k))); 
+P4y(k)=L1*(sin(alfa1(k)))+L2*(sin(alfa1(k)+alfa2(k)))+L3*(sin(alfa1(k)+alfa2(k)+alfa3(k))); 
+
+end 
+
+% draw the movement of the robot arm
+for k=1:99 
+
+p1 = plot([0 P2x(k) P3x(k) P4x(k)], [0 P2y(k) P3y(k) P4y(k)],'k'); 
+hold on;
+p2 = plot(P4x(k), P4y(k),'r.'); 
+
+
+axis([-1 1 -1 1]); 
+
+drawnow
+pause(0.01)
+delete(p1)
+end 
+
+ 
